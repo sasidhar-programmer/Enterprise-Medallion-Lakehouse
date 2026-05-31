@@ -1,0 +1,30 @@
+name: 🚀 Enterprise Medallion CI/CD
+
+# The robot wakes up every time you push new code to 'main'
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy_and_run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 🛠️ Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: 🚀 Deploy Bundle to Workspace
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle deploy
+
+      - name: 🔥 Trigger the Medallion Pipeline
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle run daily_batch_pipeline
