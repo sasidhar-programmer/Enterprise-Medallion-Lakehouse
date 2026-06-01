@@ -93,8 +93,3 @@ else:
     print("✅ Day-0 Initial Load Complete!")
 
 print("Silver Fact Forge Complete! The Fact Table is mathematically pure. ✨")
-
-spark.sql(f"""
-    OPTIMIZE {TARGET_TABLE}
-    ZORDER BY (ss_item_sk, ss_customer_sk)
-""")
