@@ -7,8 +7,20 @@
 
 > **Business Objective:** Engineered a self-healing, petabyte-ready Data Intelligence platform to process enterprise retail data (TPC-DS), tracking customer churn and executive revenue metrics with sub-second dashboard rendering.
 
+## 📑 Table of Contents
+* [📊 Executive Dashboard (Live Data Preview)](#executive-dashboard-live-data-preview)
+* [🧠 Architectural Blueprint](#architectural-blueprint)
+  * [🥉 Bronze Vault (Raw & Idempotent)](#bronze-vault-raw--idempotent)
+  * [🥈 Silver Clean Room (SCD Type 2)](#silver-clean-room-scd-type-2--incremental-extraction)
+  * [🥇 Gold Data Marts (Dual-Engine)](#gold-data-marts-dual-engine-compute)
+* [⚙️ Performance Engineering & Cloud Economics](#performance-engineering--cloud-economics)
+  * [🔬 Spark UI Profiling: Eradicating Disk Spill](#spark-ui-profiling-eradicating-disk-spill)
+* [🚀 Infrastructure as Code (IaC) & CI/CD](#infrastructure-as-code-iac--cicd)
+
+---
+
 ### 📊 Executive Dashboard (Live Data Preview)
-<!-- SASIDHAR: PUT YOUR GIF LINK RIGHT HERE -->
+<!-- SASIDHAR: YOUR GIF IS PERFECTLY PLACED HERE -->
 ![Executive Dashboard](assets/dashboard-2.gif)
 
 ---
@@ -38,7 +50,24 @@ To handle 1TB data scales efficiently without exploding Azure compute costs, the
 
 * **The Compute Sweet Spot:** Scaled the cluster from 4 to 8 `Standard_D4ds_v5` Azure worker nodes (32 total executor cores). 
 * **Partition Mathematics:** Explicitly tuned Spark shuffle partitions to **1024**. 
-* **The Result:** 1024 partitions divided by 32 physical cores equals exactly **32 sequential waves of compute**. This architecture eliminated disk spill entirely, maximized hardware utilization, and cut pipeline execution time by 50% while maintaining absolute cost-equivalence (due to Databricks per-second billing).
+* **The Result:** 1024 partitions divided by 32 physical cores equals exactly **32 sequential waves of compute**. This architecture maximized hardware utilization and cut pipeline execution time by 50% while maintaining absolute cost-equivalence (due to Databricks per-second billing).
+
+### 🔬 Spark UI Profiling: Eradicating Disk Spill
+**The Bottleneck (Before):** 
+Relying on default Spark configurations during the 1TB scale test caused massive executor memory constraints. The nodes couldn't hold the shuffle blocks in memory, resulting in severe disk spill (writing intermediate data to physical storage) and brutal pipeline degradation.
+
+<!-- SASIDHAR: PUT YOUR 'BEFORE' DISK SPILL SCREENSHOT HERE -->
+<img width="1919" height="695" alt="image" src="https://github.com/user-attachments/assets/73eb37a3-8421-4177-896b-1263dbe07988" />
+
+
+**The Mathematical Fix (After):** 
+Instead of lazily throwing more expensive hardware at the problem, I re-architected the physical execution plan. By explicitly tuning `spark.sql.shuffle.partitions` to 1024 and aligning it with a 32-core cluster, the data blocks were perfectly sized for the executor RAM. 
+
+<!-- SASIDHAR: PUT YOUR 'AFTER' CLEAN EXECUTION SCREENSHOT HERE -->
+<img width="1919" height="300" alt="image" src="https://github.com/user-attachments/assets/769644f0-914c-4608-bfce-7d7c274fda23" />
+
+
+**Result:** 0 bytes of disk spill, zero out-of-memory (OOM) errors, and a perfectly optimized compute wave. 
 
 ---
 
@@ -46,7 +75,7 @@ To handle 1TB data scales efficiently without exploding Azure compute costs, the
 
 Manual workspace deployments are anti-patterns. This entire architecture is fully automated and version-controlled.
 
-<!-- SASIDHAR: PUT YOUR GREEN DAG SCREENSHOT LINK RIGHT HERE -->
+<!-- SASIDHAR: YOUR DAG SCREENSHOT IS PERFECTLY PLACED HERE -->
 ![Databricks DAG Execution](assets/workflow.png)
 
 * **Databricks Asset Bundles (DABs):** Pipeline configurations, dependencies, and cluster sizing are defined strictly in YAML.
